@@ -752,6 +752,7 @@ static flb_sds_t flb_signv4_canonical_request(struct flb_http_client *c,
             mbedtls_sha256_update(&sha256_ctx, (const unsigned char *) c->body_buf,
                                   c->body_len);
         }
+	flb_info("Request Payload: %.*s", c->body_len, c->body_buf);
         mbedtls_sha256_finish(&sha256_ctx, sha256_buf);
 
         payload_hash = flb_sds_create_size(64);
@@ -796,9 +797,9 @@ static flb_sds_t flb_signv4_canonical_request(struct flb_http_client *c,
         flb_http_add_header(c, "x-amz-security-token", 20, security_token, len);
     }
 
-    if (s3_mode == S3_MODE_SIGNED_PAYLOAD) {
+   /* if (s3_mode == S3_MODE_SIGNED_PAYLOAD) {*/
         flb_http_add_header(c, "x-amz-content-sha256", 20, payload_hash, 64);
-    }
+   /* }*/
 
     headers_sanitize(&c->headers, &list_tmp);
 
@@ -1149,6 +1150,7 @@ flb_sds_t flb_signv4_do(struct flb_http_client *c, int normalize_uri,
                                       amz_date_header, amzdate,
                                       creds->session_token, s3_mode,
                                       &signed_headers);
+    flb_info("Canonical Request: %.*s", flb_sds_len(cr), cr);
     if (!cr) {
         flb_error("[signv4] failed canonical request");
         flb_sds_destroy(signed_headers);
@@ -1159,6 +1161,7 @@ flb_sds_t flb_signv4_do(struct flb_http_client *c, int normalize_uri,
     /* Task 2: string to sign */
     string_to_sign = flb_signv4_string_to_sign(c, cr, amzdate,
                                                datestamp, service, region);
+    flb_info("String to sign: %.*s", flb_sds_len(string_to_sign), string_to_sign);
     if (!string_to_sign) {
         flb_error("[signv4] failed string to sign");
         flb_sds_destroy(cr);
@@ -1172,6 +1175,7 @@ flb_sds_t flb_signv4_do(struct flb_http_client *c, int normalize_uri,
     signature = flb_signv4_calculate_signature(string_to_sign, datestamp,
                                                service, region,
                                                creds->secret_access_key);
+    flb_info("Signature:  %.*s", flb_sds_len(signature), signature);
     if (!signature) {
         flb_error("[signv4] failed calculate_string");
         flb_sds_destroy(signed_headers);
@@ -1186,6 +1190,7 @@ flb_sds_t flb_signv4_do(struct flb_http_client *c, int normalize_uri,
                                                creds->access_key_id,
                                                datestamp, region, service,
                                                signed_headers, signature);
+    flb_info("Auth Headers:  %.*s", flb_sds_len(auth_header), auth_header);
     flb_sds_destroy(signed_headers);
     flb_sds_destroy(signature);
     flb_aws_credentials_destroy(creds);
