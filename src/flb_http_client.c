@@ -1180,6 +1180,7 @@ int flb_http_do(struct flb_http_client *c, size_t *bytes)
 #endif
 
     /* Write the header */
+    flb_info("Headers: %.*s", c->header_len, c->header_buf);
     ret = flb_io_net_write(c->u_conn,
                            c->header_buf, c->header_len,
                            &bytes_header);
